@@ -67,22 +67,42 @@ function listarInvestimentos() {
 function adicionarInvestimento(event) {
     event.preventDefault(); // Impede o recarregamento padrão da página
 
-    const nomeAtivo = document.getElementById('nome_ativo').value;
-    const tipoId = document.getElementById('tipo_investimento').value;
-    const quantidade = parseFloat(document.getElementById('quantidade').value);
-    const valorInvestido = parseFloat(document.getElementById('valor_investido').value);
+    const nomeAtivoInput = document.getElementById('nome_ativo');
+    const tipoIdInput = document.getElementById('tipo_investimento');
+    const quantidadeInput = document.getElementById('quantidade');
+    const valorInvestidoInput = document.getElementById('valor_investido');
+    const errorDiv = document.getElementById('error-message');
 
-    // Validação simples
-    if (!nomeAtivo || !tipoId || isNaN(quantidade) || isNaN(valorInvestido)) {
-        alert('Por favor, preencha todos os campos corretamente.');
+    // Validação personalizada campo a campo
+    if (!nomeAtivoInput.value) {
+        errorDiv.textContent = 'Por favor, preencha o nome do ativo.';
+        errorDiv.style.display = 'block';
+        return;
+    }
+    if (!tipoIdInput.value) {
+        errorDiv.textContent = 'Por favor, selecione um tipo de investimento.';
+        errorDiv.style.display = 'block';
+        return;
+    }
+    if (!quantidadeInput.value || parseFloat(quantidadeInput.value) <= 0) {
+        errorDiv.textContent = 'Por favor, insira uma quantidade válida.';
+        errorDiv.style.display = 'block';
+        return;
+    }
+    if (!valorInvestidoInput.value || parseFloat(valorInvestidoInput.value) <= 0) {
+        errorDiv.textContent = 'Por favor, insira um valor investido válido.';
+        errorDiv.style.display = 'block';
         return;
     }
 
+    // Se todos os campos são válidos, esconde a mensagem de erro
+    errorDiv.style.display = 'none';
+
     const novoInvestimento = {
-        nome_ativo: nomeAtivo,
-        quantidade: quantidade,
-        valor_investido: valorInvestido,
-        tipo_id: parseInt(tipoId)
+        nome_ativo: nomeAtivoInput.value,
+        quantidade: parseFloat(quantidadeInput.value),
+        valor_investido: parseFloat(valorInvestidoInput.value),
+        tipo_id: parseInt(tipoIdInput.value)
     };
 
     fetch(`${API_URL}/investimento`, {
@@ -99,13 +119,13 @@ function adicionarInvestimento(event) {
             return response.json();
         })
         .then(() => {
-            // Limpa o formulário e atualiza a lista
             document.getElementById('form-adicionar-investimento').reset();
             listarInvestimentos();
         })
         .catch(error => {
             console.error('Erro:', error);
-            alert(`Não foi possível adicionar o investimento: ${error.message}`);
+            errorDiv.textContent = `Não foi possível adicionar o investimento: ${error.message}`;
+            errorDiv.style.display = 'block';
         });
 }
 
@@ -128,7 +148,6 @@ function deletarInvestimento(id) {
             return response.json();
         })
         .then(() => {
-            // Apenas recarrega a lista para mostrar a remoção
             listarInvestimentos();
         })
         .catch(error => {
@@ -140,14 +159,11 @@ function deletarInvestimento(id) {
 
 // Função principal que é executada quando a página carrega
 function inicializar() {
-    // Adiciona o listener de evento para o formulário
     const form = document.getElementById('form-adicionar-investimento');
     form.addEventListener('submit', adicionarInvestimento);
 
-    // Carrega os dados iniciais da API
     carregarTiposInvestimento();
     listarInvestimentos();
 }
 
-// Inicia a aplicação quando o DOM estiver completamente carregado
 document.addEventListener('DOMContentLoaded', inicializar);

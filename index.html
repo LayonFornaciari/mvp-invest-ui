@@ -27,7 +27,8 @@
             <section class="card shadow-sm mb-4">
                 <div class="card-body">
                     <h2 class="card-title h4 mb-3">Adicionar Novo Ativo</h2>
-                    <form id="form-adicionar-investimento">
+                    <!-- Adicionado 'novalidate' para desativar a validação padrão do navegador -->
+                    <form id="form-adicionar-investimento" novalidate>
                         <div class="row">
                             <div class="col-md-6 mb-3">
                                 <label for="nome_ativo" class="form-label">Nome do Ativo (Ex: PETR4)</label>
@@ -52,6 +53,8 @@
                         </div>
                         <button type="submit" class="btn btn-primary w-100">Adicionar à Carteira</button>
                     </form>
+                    <!-- Div para exibir mensagens de erro personalizadas -->
+                    <div id="error-message" class="alert alert-danger mt-3" style="display: none;"></div>
                 </div>
             </section>
 
