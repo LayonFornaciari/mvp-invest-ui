@@ -1,6 +1,7 @@
 // URL base da sua API
 const API_URL = 'http://127.0.0.1:5000';
-let editModalInstance = null; // Variável para guardar a instância do modal
+let editModalInstance = null;
+let addTipoModalInstance = null;
 
 /**
  * Função para carregar os tipos de investimento e preencher os menus dropdown.
@@ -13,8 +14,11 @@ async function carregarTiposInvestimento() {
         const selectTipoAdicionar = document.getElementById('tipo_investimento');
         const selectTipoEditar = document.getElementById('edit_tipo_investimento');
 
+        const currentSelectedAdd = selectTipoAdicionar.value;
+        const currentSelectedEdit = selectTipoEditar.value;
+
         selectTipoAdicionar.innerHTML = '<option value="">Selecione um tipo</option>';
-        selectTipoEditar.innerHTML = ''; // Limpa o select do modal
+        selectTipoEditar.innerHTML = '';
 
         data.tipos_investimento.forEach(tipo => {
             const option = document.createElement('option');
@@ -23,10 +27,49 @@ async function carregarTiposInvestimento() {
             selectTipoAdicionar.appendChild(option.cloneNode(true));
             selectTipoEditar.appendChild(option);
         });
+
+        selectTipoAdicionar.value = currentSelectedAdd;
+        selectTipoEditar.value = currentSelectedEdit;
+
     } catch (error) {
         console.error('Erro ao carregar tipos de investimento:', error);
     }
 }
+
+/**
+ * Função para adicionar um novo tipo de investimento.
+ */
+function adicionarTipoInvestimento() {
+    const nomeTipoInput = document.getElementById('novo_nome_tipo');
+    const nomeTipo = nomeTipoInput.value;
+
+    if (!nomeTipo) {
+        alert('Por favor, insira o nome do tipo de investimento.');
+        return;
+    }
+
+    fetch(`${API_URL}/tipo_investimento`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ nome: nomeTipo }),
+    })
+        .then(response => {
+            if (!response.ok) {
+                return response.json().then(err => { throw new Error(err.message || 'Erro ao adicionar tipo') });
+            }
+            return response.json();
+        })
+        .then(() => {
+            nomeTipoInput.value = '';
+            addTipoModalInstance.hide(); // Fecha o modal
+            carregarTiposInvestimento(); // Atualiza a lista de tipos
+        })
+        .catch(error => {
+            console.error('Erro:', error);
+            alert(`Não foi possível adicionar o tipo: ${error.message}`);
+        });
+}
+
 
 /**
  * Função para carregar e exibir a lista de investimentos.
@@ -68,7 +111,6 @@ function listarInvestimentos() {
  */
 function adicionarInvestimento(event) {
     event.preventDefault();
-    // ... (código existente para adicionar, sem alterações)
     const nomeAtivoInput = document.getElementById('nome_ativo');
     const tipoIdInput = document.getElementById('tipo_investimento');
     const quantidadeInput = document.getElementById('quantidade');
@@ -110,7 +152,6 @@ function adicionarInvestimento(event) {
 
 /**
  * Função para abrir o modal de edição e preencher com os dados do investimento.
- * @param {number} id - O ID do investimento a ser editado.
  */
 function abrirModalEdicao(id) {
     fetch(`${API_URL}/investimento?id=${id}`)
@@ -176,12 +217,20 @@ function inicializar() {
     const formAdicionar = document.getElementById('form-adicionar-investimento');
     formAdicionar.addEventListener('submit', adicionarInvestimento);
 
+    const btnAbrirModalTipo = document.getElementById('btn-abrir-modal-tipo');
+    btnAbrirModalTipo.addEventListener('click', () => addTipoModalInstance.show());
+
+    const btnSalvarNovoTipo = document.getElementById('btn-salvar-novo-tipo');
+    btnSalvarNovoTipo.addEventListener('click', adicionarTipoInvestimento);
+
     const btnSalvarEdicao = document.getElementById('btn-salvar-edicao');
     btnSalvarEdicao.addEventListener('click', salvarAlteracoes);
 
-    // Inicializa a instância do modal do Bootstrap
+    // Inicializa as instâncias dos modais do Bootstrap
     const editModalEl = document.getElementById('editModal');
     editModalInstance = new bootstrap.Modal(editModalEl);
+    const addTipoModalEl = document.getElementById('addTipoModal');
+    addTipoModalInstance = new bootstrap.Modal(addTipoModalEl);
 
     carregarTiposInvestimento();
     listarInvestimentos();
