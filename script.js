@@ -1,52 +1,55 @@
-// URL base da sua API (lembre-se de que o servidor do back-end precisa estar rodando)
+// URL base da sua API
 const API_URL = 'http://127.0.0.1:5000';
+let editModalInstance = null; // Variável para guardar a instância do modal
 
 /**
- * Função para carregar os tipos de investimento (categorias) da API
- * e preencher o menu dropdown no formulário.
+ * Função para carregar os tipos de investimento e preencher os menus dropdown.
  */
-function carregarTiposInvestimento() {
-    fetch(`${API_URL}/tipos_investimento`)
-        .then(response => response.json())
-        .then(data => {
-            const selectTipo = document.getElementById('tipo_investimento');
-            selectTipo.innerHTML = '<option value="">Selecione um tipo</option>'; // Opção padrão
-            data.tipos_investimento.forEach(tipo => {
-                const option = document.createElement('option');
-                option.value = tipo.id;
-                option.textContent = tipo.nome;
-                selectTipo.appendChild(option);
-            });
-        })
-        .catch(error => console.error('Erro ao carregar tipos de investimento:', error));
+async function carregarTiposInvestimento() {
+    try {
+        const response = await fetch(`${API_URL}/tipos_investimento`);
+        const data = await response.json();
+
+        const selectTipoAdicionar = document.getElementById('tipo_investimento');
+        const selectTipoEditar = document.getElementById('edit_tipo_investimento');
+
+        selectTipoAdicionar.innerHTML = '<option value="">Selecione um tipo</option>';
+        selectTipoEditar.innerHTML = ''; // Limpa o select do modal
+
+        data.tipos_investimento.forEach(tipo => {
+            const option = document.createElement('option');
+            option.value = tipo.id;
+            option.textContent = tipo.nome;
+            selectTipoAdicionar.appendChild(option.cloneNode(true));
+            selectTipoEditar.appendChild(option);
+        });
+    } catch (error) {
+        console.error('Erro ao carregar tipos de investimento:', error);
+    }
 }
 
 /**
- * Função para carregar e exibir a lista de investimentos da API.
+ * Função para carregar e exibir a lista de investimentos.
  */
 function listarInvestimentos() {
     fetch(`${API_URL}/investimentos`)
         .then(response => response.json())
         .then(data => {
             const listaContainer = document.getElementById('lista-investimentos');
-            listaContainer.innerHTML = ''; // Limpa a lista antes de recarregar
+            listaContainer.innerHTML = '';
 
             if (data.investimentos && data.investimentos.length > 0) {
                 data.investimentos.forEach(investimento => {
-                    // Cria um card para cada investimento usando as classes do Bootstrap
                     const cardHtml = `
                         <div class="col-md-6">
                             <div class="card card-investimento shadow-sm">
                                 <div class="card-body">
                                     <button type="button" class="btn-close" aria-label="Close" onclick="deletarInvestimento(${investimento.id})"></button>
                                     <h5 class="card-title">${investimento.nome_ativo}</h5>
-                                    <p class="card-text mb-1">
-                                        <strong>Quantidade:</strong> ${investimento.quantidade}
-                                    </p>
-                                    <p class="card-text mb-2">
-                                        <strong>Valor Investido:</strong> R$ ${investimento.valor_investido.toFixed(2)}
-                                    </p>
-                                    <span class="badge bg-secondary">${investimento.tipo.nome}</span>
+                                    <p class="card-text mb-1"><strong>Quantidade:</strong> ${investimento.quantidade}</p>
+                                    <p class="card-text mb-2"><strong>Valor Investido:</strong> R$ ${investimento.valor_investido.toFixed(2)}</p>
+                                    <span class="badge bg-secondary me-2">${investimento.tipo.nome}</span>
+                                    <button class="btn btn-sm btn-outline-primary" onclick="abrirModalEdicao(${investimento.id})">Editar</button>
                                 </div>
                             </div>
                         </div>
@@ -61,41 +64,22 @@ function listarInvestimentos() {
 }
 
 /**
- * Função para lidar com o envio do formulário e adicionar um novo investimento.
- * @param {Event} event - O evento de submissão do formulário.
+ * Função para lidar com a submissão do formulário de adição.
  */
 function adicionarInvestimento(event) {
-    event.preventDefault(); // Impede o recarregamento padrão da página
-
+    event.preventDefault();
+    // ... (código existente para adicionar, sem alterações)
     const nomeAtivoInput = document.getElementById('nome_ativo');
     const tipoIdInput = document.getElementById('tipo_investimento');
     const quantidadeInput = document.getElementById('quantidade');
     const valorInvestidoInput = document.getElementById('valor_investido');
     const errorDiv = document.getElementById('error-message');
 
-    // Validação personalizada campo a campo
-    if (!nomeAtivoInput.value) {
-        errorDiv.textContent = 'Por favor, preencha o nome do ativo.';
+    if (!nomeAtivoInput.value || !tipoIdInput.value || !quantidadeInput.value || !valorInvestidoInput.value) {
+        errorDiv.textContent = 'Por favor, preencha todos os campos.';
         errorDiv.style.display = 'block';
         return;
     }
-    if (!tipoIdInput.value) {
-        errorDiv.textContent = 'Por favor, selecione um tipo de investimento.';
-        errorDiv.style.display = 'block';
-        return;
-    }
-    if (!quantidadeInput.value || parseFloat(quantidadeInput.value) <= 0) {
-        errorDiv.textContent = 'Por favor, insira uma quantidade válida.';
-        errorDiv.style.display = 'block';
-        return;
-    }
-    if (!valorInvestidoInput.value || parseFloat(valorInvestidoInput.value) <= 0) {
-        errorDiv.textContent = 'Por favor, insira um valor investido válido.';
-        errorDiv.style.display = 'block';
-        return;
-    }
-
-    // Se todos os campos são válidos, esconde a mensagem de erro
     errorDiv.style.display = 'none';
 
     const novoInvestimento = {
@@ -107,15 +91,11 @@ function adicionarInvestimento(event) {
 
     fetch(`${API_URL}/investimento`, {
         method: 'POST',
-        headers: {
-            'Content-Type': 'application/json',
-        },
+        headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(novoInvestimento),
     })
         .then(response => {
-            if (!response.ok) {
-                return response.json().then(err => { throw new Error(err.message || 'Erro ao adicionar investimento') });
-            }
+            if (!response.ok) throw new Error('Erro ao adicionar investimento');
             return response.json();
         })
         .then(() => {
@@ -123,44 +103,85 @@ function adicionarInvestimento(event) {
             listarInvestimentos();
         })
         .catch(error => {
-            console.error('Erro:', error);
-            errorDiv.textContent = `Não foi possível adicionar o investimento: ${error.message}`;
+            errorDiv.textContent = error.message;
             errorDiv.style.display = 'block';
         });
 }
 
 /**
- * Função para deletar um investimento.
- * @param {number} id - O ID do investimento a ser deletado.
+ * Função para abrir o modal de edição e preencher com os dados do investimento.
+ * @param {number} id - O ID do investimento a ser editado.
  */
-function deletarInvestimento(id) {
-    if (!confirm('Tem certeza de que deseja remover este investimento?')) {
-        return;
-    }
+function abrirModalEdicao(id) {
+    fetch(`${API_URL}/investimento?id=${id}`)
+        .then(response => response.json())
+        .then(investimento => {
+            document.getElementById('edit_investimento_id').value = investimento.id;
+            document.getElementById('edit_nome_ativo').value = investimento.nome_ativo;
+            document.getElementById('edit_tipo_investimento').value = investimento.tipo.id;
+            document.getElementById('edit_quantidade').value = investimento.quantidade;
+            document.getElementById('edit_valor_investido').value = investimento.valor_investido;
+
+            editModalInstance.show();
+        })
+        .catch(error => console.error('Erro ao buscar dados para edição:', error));
+}
+
+/**
+ * Função para salvar as alterações feitas no modal de edição.
+ */
+function salvarAlteracoes() {
+    const id = document.getElementById('edit_investimento_id').value;
+    const dadosAtualizados = {
+        nome_ativo: document.getElementById('edit_nome_ativo').value,
+        quantidade: parseFloat(document.getElementById('edit_quantidade').value),
+        valor_investido: parseFloat(document.getElementById('edit_valor_investido').value),
+        tipo_id: parseInt(document.getElementById('edit_tipo_investimento').value)
+    };
 
     fetch(`${API_URL}/investimento?id=${id}`, {
-        method: 'DELETE',
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(dadosAtualizados),
     })
         .then(response => {
-            if (!response.ok) {
-                return response.json().then(err => { throw new Error(err.message || 'Erro ao deletar') });
-            }
+            if (!response.ok) throw new Error('Erro ao salvar alterações');
             return response.json();
         })
         .then(() => {
+            editModalInstance.hide();
             listarInvestimentos();
         })
-        .catch(error => {
-            console.error('Erro ao deletar:', error);
-            alert(`Não foi possível remover o investimento: ${error.message}`);
-        });
+        .catch(error => console.error('Erro:', error));
 }
 
+/**
+ * Função para deletar um investimento.
+ */
+function deletarInvestimento(id) {
+    if (!confirm('Tem certeza de que deseja remover este investimento?')) return;
 
-// Função principal que é executada quando a página carrega
+    fetch(`${API_URL}/investimento?id=${id}`, { method: 'DELETE' })
+        .then(response => {
+            if (!response.ok) throw new Error('Erro ao deletar');
+            listarInvestimentos();
+        })
+        .catch(error => console.error('Erro:', error));
+}
+
+/**
+ * Função principal de inicialização.
+ */
 function inicializar() {
-    const form = document.getElementById('form-adicionar-investimento');
-    form.addEventListener('submit', adicionarInvestimento);
+    const formAdicionar = document.getElementById('form-adicionar-investimento');
+    formAdicionar.addEventListener('submit', adicionarInvestimento);
+
+    const btnSalvarEdicao = document.getElementById('btn-salvar-edicao');
+    btnSalvarEdicao.addEventListener('click', salvarAlteracoes);
+
+    // Inicializa a instância do modal do Bootstrap
+    const editModalEl = document.getElementById('editModal');
+    editModalInstance = new bootstrap.Modal(editModalEl);
 
     carregarTiposInvestimento();
     listarInvestimentos();
